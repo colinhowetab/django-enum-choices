@@ -13,11 +13,13 @@ from .choice_builders import value_value
 from .utils import as_choice_builder, value_from_built_choice, build_enum_choices
 from .forms import EnumChoiceField as EnumChoiceFormField
 
+UNSET = object()
+
 
 class EnumChoiceField(CharField):
     description = _('EnumChoiceField for %(enum_class)')
 
-    def __init__(self, enum_class: Type[Enum], choice_builder=value_value, **kwargs):
+    def __init__(self, enum_class: Type[Enum], choice_builder=value_value, empty_value=UNSET, **kwargs):
         if not issubclass(enum_class, Enum):
             raise EnumChoiceFieldException(
                 _('`enum_class` argument must be a child of `Enum`')
@@ -25,6 +27,7 @@ class EnumChoiceField(CharField):
 
         self.enum_class = enum_class
         self.choice_builder = self._get_choice_builder(choice_builder)
+        self.empty_value = empty_value
 
         # Saving original for proper deconstruction
         self._original_choice_builder = choice_builder
@@ -194,6 +197,9 @@ class EnumChoiceField(CharField):
         include_blank = (self.blank or
                          not (self.has_default() or 'initial' in kwargs))
         defaults['choices'] = self.get_choices(include_blank=include_blank)
+
+        if self.empty_value is not UNSET:
+            defaults['empty_value'] = None
 
         # Many of the subclass-specific formfield arguments (min_value,
         # max_value) don't apply for choice fields, so be sure to only pass
